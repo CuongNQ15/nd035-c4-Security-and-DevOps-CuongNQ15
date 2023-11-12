@@ -25,21 +25,33 @@ import static com.example.demo.security.SecurityConstants.*;
 @RequestMapping("/api/order")
 public class OrderController {
 
+    private Logger logger = LoggerFactory.getLogger(OrderController.class);
+
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private OrderRepository orderRepository;
 
+    public OrderController() {
+    }
+
+    @Autowired
+    public OrderController(UserRepository userRepository, OrderRepository orderRepository) {
+        this.userRepository = userRepository;
+        this.orderRepository = orderRepository;
+    }
 
     @PostMapping("/submit/{username}")
     public ResponseEntity<UserOrder> submit(@PathVariable String username) {
         User user = userRepository.findByUsername(username);
         if (user == null) {
+            logger.error("Method: {}, Status: {} , User: {}", "Call submit", FAIL, "Not exist!!");
             return ResponseEntity.notFound().build();
         }
         UserOrder order = UserOrder.createFromCart(user.getCart());
         orderRepository.save(order);
+        logger.info("Method: {}, Status: {} , User: {}", "Call submit", SUCCESS, username);
         return ResponseEntity.ok(order);
     }
 
@@ -47,8 +59,10 @@ public class OrderController {
     public ResponseEntity<List<UserOrder>> getOrdersForUser(@PathVariable String username) {
         User user = userRepository.findByUsername(username);
         if (user == null) {
+            logger.error("Method: {}, Status: {} , User: {}", "Call getOrdersForUser", FAIL, "Not exist!!");
             return ResponseEntity.notFound().build();
         }
+        logger.info("Method: {}, Status: {} , User: {}", "Call getOrdersForUser", SUCCESS, username);
         return ResponseEntity.ok(orderRepository.findByUser(user));
     }
 }

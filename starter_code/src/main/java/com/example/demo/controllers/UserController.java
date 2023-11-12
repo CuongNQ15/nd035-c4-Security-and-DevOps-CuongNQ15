@@ -17,19 +17,34 @@ import static com.example.demo.security.SecurityConstants.*;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
-
+    private Logger logger = LoggerFactory.getLogger(UserController.class);
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private CartRepository cartRepository;
-
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
+    public UserController() {
+    }
+
+
+    public UserController(Logger logger, UserRepository userRepository, CartRepository cartRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
+        this.logger = logger;
+        this.userRepository = userRepository;
+        this.cartRepository = cartRepository;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+    }
+
     @GetMapping("/id/{id}")
     public ResponseEntity<User> findById(@PathVariable Long id) {
-        return ResponseEntity.of(userRepository.findById(id));
+        User user = userRepository.findById(id)
+                .orElse(null);
+        if (user != null) {
+            return ResponseEntity.ok(user);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/{username}")
@@ -37,8 +52,10 @@ public class UserController {
         User user = userRepository.findByUsername(username);
 
         if (user == null) {
+            logger.error("Method: {}, Status: {} , username: {}", "Call findByUserName", FAIL, "User is not exist!!");
             return ResponseEntity.notFound().build();
         }
+        logger.info("Method: {}, Status: {} , username: {}", "Call findByUserName", SUCCESS, username);
         return ResponseEntity.ok(user);
     }
 
@@ -49,12 +66,16 @@ public class UserController {
         Cart cart = new Cart();
         cartRepository.save(cart);
         user.setCart(cart);
+
         if (createUserRequest.getPassword().length() < 7 ||
                 !createUserRequest.getPassword().equals(createUserRequest.getConfirmPassword())) {
+            logger.error("Method: {}, Status: {} , Username: {}", "Call createUser", FAIL, createUserRequest.getUsername());
             return ResponseEntity.badRequest().build();
         }
+
         user.setPassword(bCryptPasswordEncoder.encode(createUserRequest.getPassword()));
         userRepository.save(user);
+        logger.info("Method: {}, Status: {} , Username: {}", "Call createUser", SUCCESS, createUserRequest.getUsername());
         return ResponseEntity.ok(user);
     }
 
